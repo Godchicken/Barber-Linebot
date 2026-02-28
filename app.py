@@ -53,9 +53,6 @@ def handle_message(event):
     if source_type == "group":
         group_id = event.source.group_id
 
-        print("GROUP ID:", group_id)
-        print("ADMIN ID:", ADMIN_GROUP_ID)
-
         if group_id == ADMIN_GROUP_ID:
             queue_count = load_queue()
 
@@ -86,45 +83,46 @@ def handle_message(event):
 
 
     # ====== ส่วนลูกค้าทักแชท ======
-queue_count = load_queue()
+    queue_count = load_queue()
 
-if "จอง" in user_text:
-    queue_count += 1
-    save_queue(queue_count)
+    if "จอง" in user_text:
+        queue_count += 1
+        save_queue(queue_count)
 
-    wait_time = (queue_count - 1) * AVG_TIME // BARBERS
+        wait_time = (queue_count - 1) * AVG_TIME // BARBERS
 
-    reply = (
-        f"จองคิวเรียบร้อยแล้วค่ะ 💈\n"
-        f"ตอนนี้มี {queue_count} คิว\n"
-        f"คาดว่าจะถึงคิวคุณในประมาณ {wait_time} นาทีค่ะ 😊"
+        reply = (
+            f"จองคิวเรียบร้อยแล้วค่ะ 💈\n"
+            f"ตอนนี้มี {queue_count} คิว\n"
+            f"คาดว่าจะถึงคิวคุณในประมาณ {wait_time} นาทีค่ะ 😊"
+        )
+
+    elif "กี่คิว" in user_text:
+        wait_time = (queue_count * AVG_TIME) // BARBERS
+
+        if queue_count == 0:
+            reply = "ตอนนี้ยังไม่มีคิว เข้ามาได้เลยค่ะ 💈"
+        else:
+            reply = f"ตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาทีค่ะ 💈"
+
+    elif "ราคา" in user_text:
+        reply = "ตัดผม 150 บาทค่ะ 💇"
+    
+    elif "เปิด" in user_text:
+        reply = "ร้านเปิด 10:00–20:00 ทุกวันค่ะ 😊"
+
+    else:
+        reply = "สวัสดีค่ะ 😊\nพิมพ์ 'จอง' เพื่อจองคิว หรือ 'กี่คิว' เพื่อตรวจสอบคิวค่ะ 💈"
+
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=reply)
     )
 
-elif "กี่คิว" in user_text:
-    wait_time = (queue_count * AVG_TIME) // BARBERS
 
-    if queue_count == 0:
-        reply = "ตอนนี้ยังไม่มีคิว เข้ามาได้เลยค่ะ 💈"
-    else:
-        reply = f"ตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาทีค่ะ 💈"
+    if __name__ == "__main__":
+        app.run(host="0.0.0.0", port=10000)
 
-elif "ราคา" in user_text:
-    reply = "ตัดผม 150 บาทค่ะ 💇"
-
-elif "เปิด" in user_text:
-    reply = "ร้านเปิด 10:00–20:00 ทุกวันค่ะ 😊"
-
-else:
-    reply = "สวัสดีค่ะ 😊\nพิมพ์ 'จอง' เพื่อจองคิว หรือ 'กี่คิว' เพื่อตรวจสอบคิวค่ะ 💈"
-
-line_bot_api.reply_message(
-    event.reply_token,
-    TextSendMessage(text=reply)
-)
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
 
 
 
