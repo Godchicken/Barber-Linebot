@@ -3,6 +3,22 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
+import gspread
+from google.oauth2.service_account import Credentials
+from datetime import datetime
+
+SCOPE = ["https://www.googleapis.com/auth/spreadsheets"]
+
+creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPE)
+client = gspread.authorize(creds)
+
+sheet = client.open("BarberIncome").sheet1
+
+
+def add_income(amount, note):
+    now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    sheet.append_row([now, note, amount])
+
 # ====== ฟังก์ชันเก็บคิวลงไฟล์ ======
 def load_queue():
     try:
@@ -61,6 +77,12 @@ def handle_message(event):
                 save_queue(queue_count)
                 reply = f"เพิ่มคิวแล้ว ตอนนี้มี {queue_count} คิว 💈"
 
+            elif user_text == "+1":
+                queue_count += 1
+                save_queue(queue_count)
+                add_income(100, "ลูกค้าเข้าร้าน")
+                reply = f"เพิ่มคิวแล้ว 💈\nบันทึกรายรับ 100 บาทแล้ว 💰\nตอนนี้มี {queue_count} คิว"
+
             elif user_text in ["/done", "-1", "done"]:
                 if queue_count > 0:
                     queue_count -= 1
@@ -88,6 +110,8 @@ def handle_message(event):
     if "จอง" in user_text:
         queue_count += 1
         save_queue(queue_count)
+
+        add_income(100, "จองคิว")
 
         wait_time = (queue_count - 1) * AVG_TIME // BARBERS
 
@@ -122,6 +146,7 @@ def handle_message(event):
 
     if __name__ == "__main__":
         app.run(host="0.0.0.0", port=10000)
+
 
 
 
