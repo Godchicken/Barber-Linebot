@@ -3,6 +3,17 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
+def load_queue():
+    try:
+        with open("queue.txt", "r") as f:
+            return int(f.read())
+    except:
+        return 0
+
+def save_queue(q):
+    with open("queue.txt", "w") as f:
+        f.write(str(q))
+
 app = Flask(__name__)
 
 # ===== ใส่ค่าของคุณทีหลัง =====
@@ -33,9 +44,8 @@ def webhook():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     print(event.source)
-    global queue_count
 
-    user_text = event.message.text.lower()
+    user_text = event.message.text.lower().strip()
     source_type = event.source.type
 
     if source_type == "group":
@@ -43,13 +53,17 @@ def handle_message(event):
 
         if group_id == ADMIN_GROUP_ID:
 
+            queue_count = load_queue()   # โหลดค่าปัจจุบัน
+
             if user_text == "/add":
                 queue_count += 1
+                save_queue(queue_count)
                 reply = f"เพิ่มคิวแล้ว ตอนนี้มี {queue_count} คิว"
 
             elif user_text == "/done":
                 if queue_count > 0:
                     queue_count -= 1
+                    save_queue(queue_count)
                 reply = f"เหลือ {queue_count} คิว"
 
             elif user_text == "/status":
@@ -91,5 +105,6 @@ def handle_message(event):
 if __name__ == "__main__":
 
     app.run(host="0.0.0.0", port=10000)
+
 
 
