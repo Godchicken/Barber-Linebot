@@ -19,8 +19,8 @@ def save_queue(q):
 app = Flask(__name__)
 
 # ===== ใส่ค่าของคุณ =====
-CHANNEL_ACCESS_TOKEN = "ใส่ของใหม่ของคุณ"
-CHANNEL_SECRET = "ใส่ของใหม่ของคุณ"
+CHANNEL_ACCESS_TOKEN = "eAiPK/EgQ0hkrs9Zzapdq+ZiYyv1Fs7XtHfBw56JEuxBPz9dLKmIG/Q6Uje5WcQsfV5e2VuKop0vnbfZRVVOYWN4I5a+kBAF9dzT4/6lYHLuYXTiMBlyblXWLmsb56zWhPb8ca/SvS5IWQzOmy8klgdB04t89/1O/w1cDnyilFU="
+CHANNEL_SECRET = "0afdedf6016247aa48fbec10f62b36eb"
 ADMIN_GROUP_ID = "C614f87b3b00dc088b5212c371c22331b"  # groupId ต้องขึ้นต้นด้วย C
 
 BARBERS = 1
@@ -110,6 +110,7 @@ def handle_message(event):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
 
 
 
