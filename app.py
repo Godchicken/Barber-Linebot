@@ -8,7 +8,7 @@ app = Flask(__name__)
 # ===== ใส่ค่าของคุณทีหลัง =====
 CHANNEL_ACCESS_TOKEN = "eAiPK/EgQ0hkrs9Zzapdq+ZiYyv1Fs7XtHfBw56JEuxBPz9dLKmIG/Q6Uje5WcQsfV5e2VuKop0vnbfZRVVOYWN4I5a+kBAF9dzT4/6lYHLuYXTiMBlyblXWLmsb56zWhPb8ca/SvS5IWQzOmy8klgdB04t89/1O/w1cDnyilFU="
 CHANNEL_SECRET = "0afdedf6016247aa48fbec10f62b36eb"
-ADMIN_GROUP_ID = "YOUR_ADMIN_GROUP_ID"
+ADMIN_GROUP_ID = "Ua16c5f73728e5a46548abb16b9016f5a"
 
 BARBERS = 1
 AVG_TIME = 30
@@ -91,4 +91,5 @@ def handle_message(event):
 if __name__ == "__main__":
 
     app.run(host="0.0.0.0", port=10000)
+
 
