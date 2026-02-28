@@ -6,10 +6,13 @@ from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+import os
+import json
 
 SCOPE = ["https://www.googleapis.com/auth/spreadsheets"]
 
-creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPE)
+google_creds = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+creds = Credentials.from_service_account_info(google_creds, scopes=SCOPE)
 client = gspread.authorize(creds)
 
 sheet = client.open("BarberIncome").sheet1
@@ -145,7 +148,10 @@ def handle_message(event):
 
 
     if __name__ == "__main__":
-        app.run(host="0.0.0.0", port=10000)
+        import os
+        port = int(os.environ.get("PORT", 10000))
+        app.run(host="0.0.0.0", port=port)
+
 
 
 
