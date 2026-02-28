@@ -46,6 +46,8 @@ def webhook():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
+    print("GROUP ID:", group_id)
+    print("ADMIN ID:", ADMIN_GROUP_ID)
     user_text = event.message.text.lower().strip()
     source_type = event.source.type
 
@@ -110,6 +112,7 @@ def handle_message(event):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
 
 
 
