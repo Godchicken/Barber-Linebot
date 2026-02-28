@@ -32,6 +32,7 @@ def webhook():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
+    print(event.source)
     global queue_count
 
     user_text = event.message.text.lower()
@@ -90,3 +91,4 @@ def handle_message(event):
 if __name__ == "__main__":
 
     app.run(host="0.0.0.0", port=10000)
+
