@@ -13,7 +13,7 @@ def load_queue():
 
 def save_queue(q):
     with open("queue.txt", "w") as f:
-        f.write(str(q)))
+        f.write(str(q))
 
 
 app = Flask(__name__)
@@ -110,6 +110,7 @@ def handle_message(event):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
 
 
 
