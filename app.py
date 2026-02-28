@@ -75,7 +75,7 @@ def handle_message(event):
         if group_id == ADMIN_GROUP_ID:
             queue_count = load_queue()
 
-            if user_text in ["/add", "+1", "add"]:
+            if user_text in ["/add", "add"]:
                 queue_count += 1
                 save_queue(queue_count)
                 reply = f"เพิ่มคิวแล้ว ตอนนี้มี {queue_count} คิว 💈"
@@ -147,10 +147,11 @@ def handle_message(event):
     )
 
 
-    if __name__ == "__main__":
-        import os
-        port = int(os.environ.get("PORT", 10000))
-        app.run(host="0.0.0.0", port=port)
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
 
 
 
