@@ -18,15 +18,11 @@ client = gspread.authorize(creds)
 
 sheet = client.open_by_key("1FFRK6b1fP1wzr9tqYp7t9PwoDYytIU3GSJIy_SDYpLo").sheet1
 
-print("DEBUG: กำลังจะเรียก add_income")
-
 
 def add_income(amount, note):
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
-    print("DEBUG: เข้า add_income แล้ว")
     try:
         sheet.append_row([now, note, amount])
-        print("DEBUG: บันทึกชีทสำเร็จ")
     except Exception as e:
         print("ERROR ตอนเขียนชีท:", e)
 
@@ -159,6 +155,7 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
