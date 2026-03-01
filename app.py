@@ -202,7 +202,6 @@ def handle_message(event):
         now = datetime.now()
         current_hour = now.hour
 
-        # ร้านปิด
         if current_hour >= CLOSE_HOUR or current_hour < OPEN_HOUR:
             reply = f"ขออภัยครับ 🙏\nตอนนี้ร้านปิดแล้ว\nร้านเปิด {OPEN_HOUR}:00–{CLOSE_HOUR}:00 ครับ 💈"
 
@@ -221,9 +220,9 @@ def handle_message(event):
                 reply = f"จองคิวสำเร็จ 💈\nตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาที"
 
                 line_bot_api.push_message(
-                ADMIN_GROUP_ID,
-                TextSendMessage(text=f"🔔 มีลูกค้าจองคิวหน้าร้าน\nตอนนี้ {queue_count} คิว")
-            )
+                    ADMIN_GROUP_ID,
+                    TextSendMessage(text=f"🔔 มีลูกค้าจองคิวหน้าร้าน\nตอนนี้ {queue_count} คิว")
+                )
 
             # ===== จองเวลา =====
             elif match:
@@ -231,90 +230,62 @@ def handle_message(event):
                 slot_time_str = match.group()
                 new_time = datetime.strptime(slot_time_str, "%H:%M")
 
-            if new_time.hour >= CLOSE_HOUR or new_time.hour < OPEN_HOUR:
-                reply = f"ขออภัยครับ 🙏\nเวลานี้อยู่นอกเวลาทำการ\nร้านเปิด {OPEN_HOUR}:00–{CLOSE_HOUR}:00 ครับ 💈"
+                if new_time.hour >= CLOSE_HOUR or new_time.hour < OPEN_HOUR:
+                    reply = f"ขออภัยครับ 🙏\nเวลานี้อยู่นอกเวลาทำการ\nร้านเปิด {OPEN_HOUR}:00–{CLOSE_HOUR}:00 ครับ 💈"
+
+                else:
+                    bookings = load_bookings()
+                    conflict = False
+
+                    for b in bookings:
+                        booked_time = datetime.strptime(b, "%H:%M")
+                        diff = abs((new_time - booked_time).total_seconds()) / 60
+
+                        if diff < BOOKING_BLOCK:
+                            conflict = True
+                            break
+
+                    if conflict:
+                        reply = "เวลานั้นไม่ว่างแล้วครับ 😅"
+                    else:
+                        bookings.append(slot_time_str)
+                        save_bookings(bookings)
+
+                        add_income(100, f"จองเวลา {slot_time_str}")
+
+                        reply = f"จองเวลา {slot_time_str} สำเร็จแล้วครับ 💈"
+
+                        line_bot_api.push_message(
+                            ADMIN_GROUP_ID,
+                            TextSendMessage(text=f"🔔 มีลูกค้าจองเวลา {slot_time_str}")
+                         )
 
             else:
-                bookings = load_bookings()
-                conflict = False
+                reply = "กรุณาพิมพ์แบบนี้นะครับ 👇\nจอง 16:00"
 
-                for b in bookings:
-                    booked_time = datetime.strptime(b, "%H:%M")
-                    diff = abs((new_time - booked_time).total_seconds()) / 60
-
-                    if diff < BOOKING_BLOCK:
-                        conflict = True
-                        break
-
-                if conflict:
-                    reply = "เวลานั้นไม่ว่างแล้วครับ 😅"
-                else:
-                    bookings.append(slot_time_str)
-                    save_bookings(bookings)
-
-                    add_income(100, f"จองเวลา {slot_time_str}")
-
-                    reply = f"จองเวลา {slot_time_str} สำเร็จแล้วครับ 💈"
-
-                    line_bot_api.push_message(
-                        ADMIN_GROUP_ID,
-                        TextSendMessage(text=f"🔔 มีลูกค้าจองเวลา {slot_time_str}")
-                    )
-
-        else:
-            reply = "กรุณาพิมพ์แบบนี้นะครับ 👇\nจอง 16:00"
-
-    # ===============================
-    # ถามเวลาเปิด-ปิด
-    # ===============================
     elif "เปิด" in user_text or "ปิด" in user_text:
         reply = f"ร้านเปิด {OPEN_HOUR}:00–{CLOSE_HOUR}:00 ครับ 💈"
 
-    # ===============================
-    # เช็คคิว
-    # ===============================
     elif "กี่คิว" in user_text:
 
-        now = datetime.now()
-        current_dt = datetime.strptime(now.strftime("%H:%M"), "%H:%M")
-
-        bookings = load_bookings()
-        busy_until = None
-
-        for b in bookings:
-            booked_time = datetime.strptime(b, "%H:%M")
-            diff = (current_dt - booked_time).total_seconds() / 60
-
-            if 0 <= diff < BOOKING_BLOCK:
-                busy_until = booked_time + timedelta(minutes=BOOKING_BLOCK)
-                break
-
-        if busy_until:
-            reply = f"ตอนนี้มีจองเวลาอยู่ครับ 💈\nว่างอีกทีประมาณ {busy_until.strftime('%H:%M')}"
+        if queue_count == 0:
+            reply = "ตอนนี้ยังไม่มีคิว เข้ามาได้เลยครับ 💈"
         else:
             wait_time = (queue_count * AVG_TIME) // BARBERS
+            reply = f"ตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาที 💈"
 
-            if queue_count == 0:
-                reply = "ตอนนี้ยังไม่มีคิว เข้ามาได้เลยครับ 💈"
-            else:
-                reply = f"ตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาที 💈"
+    else:
+        reply = "พิมพ์ 'จอง' หรือ 'จอง 16:00' ได้เลยครับ 💈"
+
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=reply)
     )
 
-
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
-
-if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
-
 
 
 
