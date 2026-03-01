@@ -21,7 +21,9 @@ sheet = client.open("BarberIncome").sheet1
 
 def add_income(amount, note):
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    print("DEBUG: กำลังบันทึกลงชีท", now, note, amount)
     sheet.append_row([now, note, amount])
+    print("DEBUG: บันทึกสำเร็จ")
 
 # ====== ฟังก์ชันเก็บคิวลงไฟล์ ======
 def load_queue():
@@ -152,6 +154,7 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
