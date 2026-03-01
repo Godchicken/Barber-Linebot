@@ -133,35 +133,72 @@ def handle_message(event):
 
     if "จอง" in user_text:
 
-        match = re.search(r"\d{1,2}:\d{2}", user_text)
+    # ===== กรณีจองแบบไม่ระบุเวลา =====
+    match = re.search(r"\d{1,2}:\d{2}", user_text)
 
-        if not match:
-            reply = "กรุณาพิมพ์แบบนี้:\nจอง 16:00"
+    if not match:
+        queue_count += 1
+        save_queue(queue_count)
+
+        wait_time = (queue_count - 1) * AVG_TIME // BARBERS
+
+        add_income(100, "จองคิวหน้าร้าน")
+
+        reply = f"จองคิวสำเร็จ 💈\nตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาที"
+
+        line_bot_api.push_message(
+            ADMIN_GROUP_ID,
+            TextSendMessage(text=f"🔔 มีลูกค้าจองคิวหน้าร้าน\nตอนนี้ {queue_count} คิว")
+        )
+
+    # ===== กรณีจองแบบระบุเวลา =====
+    else:
+        slot_time_str = match.group()
+        new_time = datetime.strptime(slot_time_str, "%H:%M")
+
+        bookings = load_bookings()
+
+        conflict = False
+
+        for b in bookings:
+            booked_time = datetime.strptime(b, "%H:%M")
+            diff = abs((new_time - booked_time).total_seconds()) / 60
+
+            if diff < BOOKING_BLOCK:
+                conflict = True
+                break
+
+        if conflict:
+            suggested_time = new_time
+
+            while True:
+                suggested_time += timedelta(minutes=BOOKING_BLOCK)
+                available = True
+
+                for b in bookings:
+                    booked_time = datetime.strptime(b, "%H:%M")
+                    diff = abs((suggested_time - booked_time).total_seconds()) / 60
+                    if diff < BOOKING_BLOCK:
+                        available = False
+                        break
+
+                if available:
+                    break
+
+            reply = f"เวลานั้นไม่ว่าง 😅\nว่างอีกทีตอน {suggested_time.strftime('%H:%M')}"
+
         else:
-            slot_time = match.group()
-            bookings = load_bookings()
+            bookings.append(slot_time_str)
+            save_bookings(bookings)
 
-            if slot_time in bookings:
-                t = datetime.strptime(slot_time, "%H:%M")
+            add_income(100, f"จองเวลา {slot_time_str}")
 
-                while slot_time in bookings:
-                    t += timedelta(minutes=BOOKING_BLOCK)
-                    slot_time = t.strftime("%H:%M")
+            reply = f"จองเวลา {slot_time_str} สำเร็จแล้วครับ 💈"
 
-                reply = f"เวลานั้นไม่ว่างแล้ว 😅\nว่างอีกทีตอน {slot_time}"
-            else:
-                bookings.append(slot_time)
-                save_bookings(bookings)
-
-                add_income(100, f"จองเวลา {slot_time}")
-
-                reply = f"จองเวลา {slot_time} สำเร็จแล้วครับ 💈"
-
-                # แจ้งเตือนกลุ่มแอดมิน
-                line_bot_api.push_message(
-                    ADMIN_GROUP_ID,
-                    TextSendMessage(text=f"🔔 มีลูกค้าจองเวลา {slot_time}")
-                )
+            line_bot_api.push_message(
+                ADMIN_GROUP_ID,
+                TextSendMessage(text=f"🔔 มีลูกค้าจองเวลา {slot_time_str}")
+            )
 
     elif "กี่คิว" in user_text:
         wait_time = (queue_count * AVG_TIME) // BARBERS
@@ -190,6 +227,7 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
