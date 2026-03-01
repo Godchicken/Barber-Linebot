@@ -131,6 +131,67 @@ def handle_message(event):
         return  # ออกจาก group ไม่ให้ไปตอบลูกค้า
 
 
+    line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
+handler = WebhookHandler(CHANNEL_SECRET)
+
+
+@app.route("/webhook", methods=['POST'])
+def webhook():
+    signature = request.headers['X-Line-Signature']
+    body = request.get_data(as_text=True)
+
+    try:
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        abort(400)
+
+    return 'OK'
+
+
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+    user_text = event.message.text.lower().strip()
+    source_type = event.source.type
+
+    # ====== ส่วนแอดมิน (ในกลุ่มเท่านั้น) ======
+    if source_type == "group":
+        group_id = event.source.group_id
+
+        if group_id == ADMIN_GROUP_ID:
+            queue_count = load_queue()
+
+            if user_text in ["/add", "add"]:
+                queue_count += 1
+                save_queue(queue_count)
+                reply = f"เพิ่มคิวแล้ว ตอนนี้มี {queue_count} คิว 💈"
+
+            elif user_text == "+1":
+                queue_count += 1
+                save_queue(queue_count)
+                add_income(100, "ลูกค้าเข้าร้าน")
+                reply = f"เพิ่มคิวแล้ว 💈\nบันทึกรายรับ 100 บาทแล้ว 💰\nตอนนี้มี {queue_count} คิว"
+
+            elif user_text in ["/done", "-1", "done"]:
+                if queue_count > 0:
+                    queue_count -= 1
+                    save_queue(queue_count)
+                reply = f"เหลือ {queue_count} คิว 💈"
+
+            elif user_text in ["/status", "เช็ก", "เหลือ"]:
+                wait_time = (queue_count * AVG_TIME) // BARBERS
+                reply = f"คิวทั้งหมด: {queue_count}\nรอประมาณ: {wait_time} นาที 💈"
+
+            else:
+                reply = "คำสั่งแอดมิน:\n/add\n/done\n/status"
+
+            line_bot_api.reply_message(
+                event.reply_token,
+                TextSendMessage(text=reply)
+            )
+
+        return  # ออกจาก group ไม่ให้ไปตอบลูกค้า
+
+
     # ====== ส่วนลูกค้าทักแชท ======
     queue_count = load_queue()
 
@@ -247,6 +308,13 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
+
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
 
 
 
