@@ -200,39 +200,40 @@ def handle_message(event):
     # ===============================
     if "จอง" in user_text:
 
-        now = datetime.now()
-        current_hour = now.hour
+    now = datetime.now()
+    current_hour = now.hour
 
-        # ===== เช็คว่าร้านปิดหรือยัง =====
-        if current_hour >= CLOSE_HOUR or current_hour < OPEN_HOUR:
-            reply = "ขออภัยครับ 🙏\nตอนนี้ร้านปิดแล้ว\nร้านเปิด 09:00–20:00 ครับ 💈"
+    # ร้านปิด
+    if current_hour >= CLOSE_HOUR or current_hour < OPEN_HOUR:
+        reply = f"ขออภัยครับ 🙏\nตอนนี้ร้านปิดแล้ว\nร้านเปิด {OPEN_HOUR}:00–{CLOSE_HOUR}:00 ครับ 💈"
 
-        else:
-            match = re.search(r"\d{1,2}:\d{2}", user_text)
+    else:
+        match = re.search(r"\d{1,2}:\d{2}", user_text)
 
-            # ===== จองคิวปกติ =====
-            if user_text.strip() == "จอง":
-                queue_count += 1
-                save_queue(queue_count)
+        # ===== จองคิวปกติ =====
+        if user_text.strip() == "จอง":
 
-                wait_time = (queue_count - 1) * AVG_TIME // BARBERS
-                add_income(100, "จองคิวหน้าร้าน")
+            queue_count += 1
+            save_queue(queue_count)
 
-                reply = f"จองคิวสำเร็จ 💈\nตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาที"
+            wait_time = (queue_count - 1) * AVG_TIME // BARBERS
+            add_income(100, "จองคิวหน้าร้าน")
 
-                line_bot_api.push_message(
-                    ADMIN_GROUP_ID,
-                    TextSendMessage(text=f"🔔 มีลูกค้าจองคิวหน้าร้าน\nตอนนี้ {queue_count} คิว")
-                )
+            reply = f"จองคิวสำเร็จ 💈\nตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาที"
+
+            line_bot_api.push_message(
+                ADMIN_GROUP_ID,
+                TextSendMessage(text=f"🔔 มีลูกค้าจองคิวหน้าร้าน\nตอนนี้ {queue_count} คิว")
+            )
 
         # ===== จองเวลา =====
         elif match:
+
             slot_time_str = match.group()
             new_time = datetime.strptime(slot_time_str, "%H:%M")
 
-            # เช็คว่าจองเกินเวลาปิดไหม
             if new_time.hour >= CLOSE_HOUR or new_time.hour < OPEN_HOUR:
-                reply = "ขออภัยครับ 🙏\nเวลานี้อยู่นอกเวลาทำการ\nร้านเปิด 09:00–20:00 ครับ 💈"
+                reply = f"ขออภัยครับ 🙏\nเวลานี้อยู่นอกเวลาทำการ\nร้านเปิด {OPEN_HOUR}:00–{CLOSE_HOUR}:00 ครับ 💈"
 
             else:
                 bookings = load_bookings()
@@ -262,7 +263,7 @@ def handle_message(event):
                     )
 
         else:
-            reply = "กรุณาพิมพ์แบบนี้นะครับ 👇\nจอง 16:00\n(ต้องใช้รูปแบบ ชั่วโมง:นาที)"
+            reply = "กรุณาพิมพ์แบบนี้นะครับ 👇\nจอง 16:00"
 
     # ===============================
     # ถามเวลาเปิด-ปิด
@@ -314,6 +315,7 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
