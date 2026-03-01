@@ -199,15 +199,14 @@ def handle_message(event):
     # จอง
     # ===============================
     if "จอง" in user_text:
+        now = datetime.now()
+        current_hour = now.hour
 
-    now = datetime.now()
-    current_hour = now.hour
+        # ร้านปิด
+        if current_hour >= CLOSE_HOUR or current_hour < OPEN_HOUR:
+            reply = f"ขออภัยครับ 🙏\nตอนนี้ร้านปิดแล้ว\nร้านเปิด {OPEN_HOUR}:00–{CLOSE_HOUR}:00 ครับ 💈"
 
-    # ร้านปิด
-    if current_hour >= CLOSE_HOUR or current_hour < OPEN_HOUR:
-        reply = f"ขออภัยครับ 🙏\nตอนนี้ร้านปิดแล้ว\nร้านเปิด {OPEN_HOUR}:00–{CLOSE_HOUR}:00 ครับ 💈"
-
-    else:
+        else:
         match = re.search(r"\d{1,2}:\d{2}", user_text)
 
         # ===== จองคิวปกติ =====
@@ -315,6 +314,7 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
