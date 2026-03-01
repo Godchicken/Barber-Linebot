@@ -201,12 +201,33 @@ def handle_message(event):
             )
 
     elif "กี่คิว" in user_text:
+
+    now = datetime.now()
+    current_time = now.strftime("%H:%M")
+    current_dt = datetime.strptime(current_time, "%H:%M")
+
+    bookings = load_bookings()
+
+    busy_until = None
+
+    for b in bookings:
+        booked_time = datetime.strptime(b, "%H:%M")
+        diff = (current_dt - booked_time).total_seconds() / 60
+
+        # ถ้าอยู่ในช่วง 1 ชั่วโมงที่ล็อกไว้
+        if 0 <= diff < BOOKING_BLOCK:
+            busy_until = booked_time + timedelta(minutes=BOOKING_BLOCK)
+            break
+
+    if busy_until:
+        reply = f"ตอนนี้มีจองเวลาอยู่ครับ 💈\nว่างอีกทีประมาณ {busy_until.strftime('%H:%M')}"
+    else:
         wait_time = (queue_count * AVG_TIME) // BARBERS
 
         if queue_count == 0:
             reply = "ตอนนี้ยังไม่มีคิว เข้ามาได้เลยครับ 💈"
         else:
-            reply = f"ตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาทีค่ะ 💈"
+            reply = f"ตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาที 💈"
 
     elif "ราคา" in user_text:
         reply = "ตัดผม 100 บาทครับ 💇"
@@ -227,6 +248,7 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
