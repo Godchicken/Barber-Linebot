@@ -9,7 +9,8 @@ from datetime import datetime
 import os
 import json
 
-SCOPE = ["https://www.googleapis.com/auth/spreadsheets"]
+SCOPE = ["https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"]
 
 google_creds = json.loads(os.environ["GOOGLE_CREDENTIALS"])
 creds = Credentials.from_service_account_info(google_creds, scopes=SCOPE)
@@ -151,6 +152,7 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
