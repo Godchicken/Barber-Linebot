@@ -66,6 +66,8 @@ ADMIN_GROUP_ID = "C614f87b3b0ad0c08b5212c371c2233fb"  # groupId ต้องข�
 BARBERS = 1
 AVG_TIME = 40  # นาทีต่อหัว
 BOOKING_BLOCK = 60 # ล็อกจองล่วงหน้า 1 ชั่วโมง
+OPEN_HOUR = 9
+CLOSE_HOUR = 20
 
 
 line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
@@ -137,6 +139,14 @@ def handle_message(event):
     # ===============================
     if "จอง" in user_text:
 
+    now = datetime.now()
+    current_hour = now.hour
+
+    # ===== เช็คว่าร้านปิดหรือยัง =====
+    if current_hour >= CLOSE_HOUR or current_hour < OPEN_HOUR:
+        reply = "ขออภัยครับ 🙏\nตอนนี้ร้านปิดแล้ว\nร้านเปิด 09:00–20:00 ครับ 💈"
+
+    else:
         match = re.search(r"\d{1,2}:\d{2}", user_text)
 
         # ===== จองคิวปกติ =====
@@ -145,7 +155,6 @@ def handle_message(event):
             save_queue(queue_count)
 
             wait_time = (queue_count - 1) * AVG_TIME // BARBERS
-
             add_income(100, "จองคิวหน้าร้าน")
 
             reply = f"จองคิวสำเร็จ 💈\nตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาที"
@@ -160,31 +169,36 @@ def handle_message(event):
             slot_time_str = match.group()
             new_time = datetime.strptime(slot_time_str, "%H:%M")
 
-            bookings = load_bookings()
-            conflict = False
+            # เช็คว่าจองเกินเวลาปิดไหม
+            if new_time.hour >= CLOSE_HOUR or new_time.hour < OPEN_HOUR:
+                reply = "ขออภัยครับ 🙏\nเวลานี้อยู่นอกเวลาทำการ\nร้านเปิด 09:00–20:00 ครับ 💈"
 
-            for b in bookings:
-                booked_time = datetime.strptime(b, "%H:%M")
-                diff = abs((new_time - booked_time).total_seconds()) / 60
-
-                if diff < BOOKING_BLOCK:
-                    conflict = True
-                    break
-
-            if conflict:
-                reply = "เวลานั้นไม่ว่างแล้วครับ 😅"
             else:
-                bookings.append(slot_time_str)
-                save_bookings(bookings)
+                bookings = load_bookings()
+                conflict = False
 
-                add_income(100, f"จองเวลา {slot_time_str}")
+                for b in bookings:
+                    booked_time = datetime.strptime(b, "%H:%M")
+                    diff = abs((new_time - booked_time).total_seconds()) / 60
 
-                reply = f"จองเวลา {slot_time_str} สำเร็จแล้วครับ 💈"
+                    if diff < BOOKING_BLOCK:
+                        conflict = True
+                        break
 
-                line_bot_api.push_message(
-                    ADMIN_GROUP_ID,
-                    TextSendMessage(text=f"🔔 มีลูกค้าจองเวลา {slot_time_str}")
-                )
+                if conflict:
+                    reply = "เวลานั้นไม่ว่างแล้วครับ 😅"
+                else:
+                    bookings.append(slot_time_str)
+                    save_bookings(bookings)
+
+                    add_income(100, f"จองเวลา {slot_time_str}")
+
+                    reply = f"จองเวลา {slot_time_str} สำเร็จแล้วครับ 💈"
+
+                    line_bot_api.push_message(
+                        ADMIN_GROUP_ID,
+                        TextSendMessage(text=f"🔔 มีลูกค้าจองเวลา {slot_time_str}")
+                    )
 
         else:
             reply = "กรุณาพิมพ์แบบนี้นะครับ 👇\nจอง 16:00\n(ต้องใช้รูปแบบ ชั่วโมง:นาที)"
@@ -217,15 +231,6 @@ def handle_message(event):
                 reply = "ตอนนี้ยังไม่มีคิว เข้ามาได้เลยครับ 💈"
             else:
                 reply = f"ตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาที 💈"
-
-    elif "ราคา" in user_text:
-        reply = "ตัดผม 100 บาทครับ 💇"
-
-    elif "เปิด" in user_text:
-        reply = "ร้านเปิด 10:00–20:00 ทุกวันครับ 😊"
-
-    else:
-        reply = "สวัสดีค่ะ 😊\nพิมพ์ 'จอง' หรือ 'จอง 16:00' ได้เลยครับ 💈"
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=reply)
@@ -236,6 +241,7 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
