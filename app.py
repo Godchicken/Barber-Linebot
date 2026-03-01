@@ -11,6 +11,23 @@ import json
 import re
 from datetime import timedelta
 
+def parse_thai_time(text):
+    text = text.replace(" ", "")
+
+    # กรณี 09:30
+    match_colon = re.search(r"\d{1,2}:\d{2}", text)
+    if match_colon:
+        return match_colon.group()
+
+    # กรณี 9โมง / 9โมงครึ่ง
+    match_thai = re.search(r"(\d{1,2})โมง(ครึ่ง)?", text)
+    if match_thai:
+        hour = int(match_thai.group(1))
+        minute = 30 if match_thai.group(2) else 0
+        return f"{hour:02d}:{minute:02d}"
+
+    return None
+
 SCOPE = ["https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"]
 
@@ -136,10 +153,10 @@ def handle_message(event):
     # ===============================
     if "จอง" in user_text:
 
-        match = re.search(r"\d{1,2}:\d{2}", user_text)
+        slot_time_str = parse_thai_time(user_text)
 
         # ===== จองแบบไม่ระบุเวลา =====
-        if not match:
+        if not slot_time_str:
             queue_count += 1
             save_queue(queue_count)
 
@@ -250,6 +267,7 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
