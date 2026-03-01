@@ -139,30 +139,30 @@ def handle_message(event):
     # ===============================
     if "จอง" in user_text:
 
-    now = datetime.now()
-    current_hour = now.hour
+        now = datetime.now()
+        current_hour = now.hour
 
-    # ===== เช็คว่าร้านปิดหรือยัง =====
-    if current_hour >= CLOSE_HOUR or current_hour < OPEN_HOUR:
-        reply = "ขออภัยครับ 🙏\nตอนนี้ร้านปิดแล้ว\nร้านเปิด 09:00–20:00 ครับ 💈"
+        # ===== เช็คว่าร้านปิดหรือยัง =====
+        if current_hour >= CLOSE_HOUR or current_hour < OPEN_HOUR:
+            reply = "ขออภัยครับ 🙏\nตอนนี้ร้านปิดแล้ว\nร้านเปิด 09:00–20:00 ครับ 💈"
 
-    else:
-        match = re.search(r"\d{1,2}:\d{2}", user_text)
+        else:
+            match = re.search(r"\d{1,2}:\d{2}", user_text)
 
-        # ===== จองคิวปกติ =====
-        if user_text.strip() == "จอง":
-            queue_count += 1
-            save_queue(queue_count)
+            # ===== จองคิวปกติ =====
+            if user_text.strip() == "จอง":
+                queue_count += 1
+                save_queue(queue_count)
 
-            wait_time = (queue_count - 1) * AVG_TIME // BARBERS
-            add_income(100, "จองคิวหน้าร้าน")
+                wait_time = (queue_count - 1) * AVG_TIME // BARBERS
+                add_income(100, "จองคิวหน้าร้าน")
 
-            reply = f"จองคิวสำเร็จ 💈\nตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาที"
+                reply = f"จองคิวสำเร็จ 💈\nตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาที"
 
-            line_bot_api.push_message(
-                ADMIN_GROUP_ID,
-                TextSendMessage(text=f"🔔 มีลูกค้าจองคิวหน้าร้าน\nตอนนี้ {queue_count} คิว")
-            )
+                line_bot_api.push_message(
+                    ADMIN_GROUP_ID,
+                    TextSendMessage(text=f"🔔 มีลูกค้าจองคิวหน้าร้าน\nตอนนี้ {queue_count} คิว")
+                )
 
         # ===== จองเวลา =====
         elif match:
@@ -204,6 +204,12 @@ def handle_message(event):
             reply = "กรุณาพิมพ์แบบนี้นะครับ 👇\nจอง 16:00\n(ต้องใช้รูปแบบ ชั่วโมง:นาที)"
 
     # ===============================
+    # ถามเวลาเปิด-ปิด
+    # ===============================
+    elif "เปิด" in user_text or "ปิด" in user_text:
+        reply = f"ร้านเปิด {OPEN_HOUR}:00–{CLOSE_HOUR}:00 ครับ 💈"
+
+    # ===============================
     # เช็คคิว
     # ===============================
     elif "กี่คิว" in user_text:
@@ -241,6 +247,7 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
