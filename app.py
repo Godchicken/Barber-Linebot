@@ -131,37 +131,37 @@ def handle_message(event):
     # ====== ส่วนลูกค้าทักแชท ======
     queue_count = load_queue()
 
-   if "จอง" in user_text:
+    if "จอง" in user_text:
 
-    match = re.search(r"\d{1,2}:\d{2}", user_text)
+        match = re.search(r"\d{1,2}:\d{2}", user_text)
 
-    if not match:
-        reply = "กรุณาพิมพ์แบบนี้:\nจอง 16:00"
-    else:
-        slot_time = match.group()
-        bookings = load_bookings()
-
-        if slot_time in bookings:
-            t = datetime.strptime(slot_time, "%H:%M")
-
-            while slot_time in bookings:
-                t += timedelta(minutes=BOOKING_BLOCK)
-                slot_time = t.strftime("%H:%M")
-
-            reply = f"เวลานั้นไม่ว่างแล้ว 😅\nว่างอีกทีตอน {slot_time}"
+        if not match:
+            reply = "กรุณาพิมพ์แบบนี้:\nจอง 16:00"
         else:
-            bookings.append(slot_time)
-            save_bookings(bookings)
+            slot_time = match.group()
+            bookings = load_bookings()
 
-            add_income(100, f"จองเวลา {slot_time}")
+            if slot_time in bookings:
+                t = datetime.strptime(slot_time, "%H:%M")
 
-            reply = f"จองเวลา {slot_time} สำเร็จแล้วครับ 💈"
+                while slot_time in bookings:
+                    t += timedelta(minutes=BOOKING_BLOCK)
+                    slot_time = t.strftime("%H:%M")
 
-            # แจ้งเตือนกลุ่มแอดมิน
-            line_bot_api.push_message(
-                ADMIN_GROUP_ID,
-                TextSendMessage(text=f"🔔 มีลูกค้าจองเวลา {slot_time}")
-            )
+                reply = f"เวลานั้นไม่ว่างแล้ว 😅\nว่างอีกทีตอน {slot_time}"
+            else:
+                bookings.append(slot_time)
+                save_bookings(bookings)
+
+                add_income(100, f"จองเวลา {slot_time}")
+
+                reply = f"จองเวลา {slot_time} สำเร็จแล้วครับ 💈"
+
+                # แจ้งเตือนกลุ่มแอดมิน
+                line_bot_api.push_message(
+                    ADMIN_GROUP_ID,
+                    TextSendMessage(text=f"🔔 มีลูกค้าจองเวลา {slot_time}")
+                )
 
     elif "กี่คิว" in user_text:
         wait_time = (queue_count * AVG_TIME) // BARBERS
@@ -173,12 +173,12 @@ def handle_message(event):
 
     elif "ราคา" in user_text:
         reply = "ตัดผม 100 บาทครับ 💇"
-    
+
     elif "เปิด" in user_text:
         reply = "ร้านเปิด 10:00–20:00 ทุกวันครับ 😊"
 
     else:
-        reply = "สวัสดีค่ะ 😊\nพิมพ์ 'จอง' เพื่อจองคิว หรือ 'กี่คิว' เพื่อตรวจสอบคิวครับ 💈"
+        reply = "สวัสดีค่ะ 😊\nพิมพ์ 'จอง 16:00' เพื่อจองเวลา หรือ 'กี่คิว' เพื่อตรวจสอบคิวครับ 💈"
 
     line_bot_api.reply_message(
         event.reply_token,
@@ -190,6 +190,7 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
