@@ -11,22 +11,6 @@ import json
 import re
 from datetime import timedelta
 
-def parse_thai_time(text):
-    text = text.replace(" ", "")
-
-    # กรณี 09:30
-    match_colon = re.search(r"\d{1,2}:\d{2}", text)
-    if match_colon:
-        return match_colon.group()
-
-    # กรณี 9โมง / 9โมงครึ่ง
-    match_thai = re.search(r"(\d{1,2})โมง(ครึ่ง)?", text)
-    if match_thai:
-        hour = int(match_thai.group(1))
-        minute = 30 if match_thai.group(2) else 0
-        return f"{hour:02d}:{minute:02d}"
-
-    return None
 
 SCOPE = ["https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"]
@@ -153,70 +137,59 @@ def handle_message(event):
     # ===============================
     if "จอง" in user_text:
 
-        slot_time_str = parse_thai_time(user_text)
+    # หาเวลาแบบ 16:00 เท่านั้น
+    match = re.search(r"\d{1,2}:\d{2}", user_text)
 
-        # ===== จองแบบไม่ระบุเวลา =====
-        if not slot_time_str:
-            queue_count += 1
-            save_queue(queue_count)
+    # ===== จองคิวปกติ =====
+    if user_text.strip() == "จอง":
+        queue_count += 1
+        save_queue(queue_count)
 
-            wait_time = (queue_count - 1) * AVG_TIME // BARBERS
+        wait_time = (queue_count - 1) * AVG_TIME // BARBERS
 
-            add_income(100, "จองคิวหน้าร้าน")
+        add_income(100, "จองคิวหน้าร้าน")
 
-            reply = f"จองคิวสำเร็จ 💈\nตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาที"
+        reply = f"จองคิวสำเร็จ 💈\nตอนนี้มี {queue_count} คิว\nรอประมาณ {wait_time} นาที"
+
+        line_bot_api.push_message(
+            ADMIN_GROUP_ID,
+            TextSendMessage(text=f"🔔 มีลูกค้าจองคิวหน้าร้าน\nตอนนี้ {queue_count} คิว")
+        )
+
+    # ===== จองเวลาแบบถูกต้อง =====
+    elif match:
+        slot_time_str = match.group()
+        new_time = datetime.strptime(slot_time_str, "%H:%M")
+
+        bookings = load_bookings()
+        conflict = False
+
+        for b in bookings:
+            booked_time = datetime.strptime(b, "%H:%M")
+            diff = abs((new_time - booked_time).total_seconds()) / 60
+
+            if diff < BOOKING_BLOCK:
+                conflict = True
+                break
+
+        if conflict:
+            reply = "เวลานั้นไม่ว่างแล้วครับ 😅"
+        else:
+            bookings.append(slot_time_str)
+            save_bookings(bookings)
+
+            add_income(100, f"จองเวลา {slot_time_str}")
+
+            reply = f"จองเวลา {slot_time_str} สำเร็จแล้วครับ 💈"
 
             line_bot_api.push_message(
                 ADMIN_GROUP_ID,
-                TextSendMessage(text=f"🔔 มีลูกค้าจองคิวหน้าร้าน\nตอนนี้ {queue_count} คิว")
+                TextSendMessage(text=f"🔔 มีลูกค้าจองเวลา {slot_time_str}")
             )
 
-        # ===== จองแบบระบุเวลา =====
-        else:
-            slot_time_str = match.group()
-            new_time = datetime.strptime(slot_time_str, "%H:%M")
-
-            bookings = load_bookings()
-            conflict = False
-
-            for b in bookings:
-                booked_time = datetime.strptime(b, "%H:%M")
-                diff = abs((new_time - booked_time).total_seconds()) / 60
-
-                if diff < BOOKING_BLOCK:
-                    conflict = True
-                    break
-
-            if conflict:
-                suggested_time = new_time
-
-                while True:
-                    suggested_time += timedelta(minutes=BOOKING_BLOCK)
-                    available = True
-
-                    for b in bookings:
-                        booked_time = datetime.strptime(b, "%H:%M")
-                        diff = abs((suggested_time - booked_time).total_seconds()) / 60
-                        if diff < BOOKING_BLOCK:
-                            available = False
-                            break
-
-                    if available:
-                        break
-
-                reply = f"เวลานั้นไม่ว่าง 😅\nว่างอีกทีตอน {suggested_time.strftime('%H:%M')}"
-
-            else:
-                bookings.append(slot_time_str)
-                save_bookings(bookings)
-
-                add_income(100, f"จองเวลา {slot_time_str}")
-
-                reply = f"จองเวลา {slot_time_str} สำเร็จแล้วครับ 💈"
-
-                line_bot_api.push_message(
-                    ADMIN_GROUP_ID,
-                    TextSendMessage(text=f"🔔 มีลูกค้าจองเวลา {slot_time_str}")
+    # ===== พิมพ์เวลาแบบผิด =====
+    else:
+        reply = "กรุณาพิมพ์แบบนี้นะครับ 👇\nจอง 16:00\n(ต้องใช้รูปแบบ ชั่วโมง:นาที)"
                 )
 
     # ===============================
@@ -267,6 +240,7 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
